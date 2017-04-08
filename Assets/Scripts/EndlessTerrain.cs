@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class EndlessTerrain : MonoBehaviour {
 
+	const float scale = 1f;
+
 	const float viewerMoveThresholdForChunkUpdate = 25f;
 	const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
 	public LODInfo[] detailLevels;
@@ -19,7 +21,7 @@ public class EndlessTerrain : MonoBehaviour {
 	int chunksVisibleInViewDst;
 
 	Dictionary<Vector2, TerrainChunk> terrainChunkDictionnary = new Dictionary<Vector2, TerrainChunk>();
-	List<TerrainChunk> terrainChunkVisibleLastUpdate = new List<TerrainChunk>();
+	static List<TerrainChunk> terrainChunkVisibleLastUpdate = new List<TerrainChunk>();
 
 	void Start()
 	{
@@ -34,7 +36,7 @@ public class EndlessTerrain : MonoBehaviour {
 
 	void Update()
 	{
-		viewerPosition = new Vector2(viewer.position.x, viewer.position.z);
+		viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / scale ;
 
 		if((viewerPositionOld - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
 		{
@@ -65,10 +67,6 @@ public class EndlessTerrain : MonoBehaviour {
 				if (terrainChunkDictionnary.ContainsKey(viewedChunkCoord))
 				{
 					terrainChunkDictionnary[viewedChunkCoord].UpdateTerrainChunk();
-					if (terrainChunkDictionnary[viewedChunkCoord].IsVisible())
-					{
-						terrainChunkVisibleLastUpdate.Add(terrainChunkDictionnary[viewedChunkCoord]);
-					}
 				}
 				else
 				{
@@ -107,8 +105,9 @@ public class EndlessTerrain : MonoBehaviour {
 			meshFilter = meshObject.AddComponent<MeshFilter>();
 			meshRenderer.material = material;
 
-			meshObject.transform.position = positionV3;
+			meshObject.transform.position = positionV3 * scale;
 			meshObject.transform.parent = parent;
+			meshObject.transform.localScale = Vector3.one * scale;
 			SetVisible(false);
 
 			lodMeshes = new LODMesh[detailLevels.Length];
@@ -168,6 +167,8 @@ public class EndlessTerrain : MonoBehaviour {
 							lodMesh.RequestMesh(mapData);
 						}
 					}
+
+					terrainChunkVisibleLastUpdate.Add(this);
 				}
 
 				SetVisible(visible);
