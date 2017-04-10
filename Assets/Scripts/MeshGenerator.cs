@@ -69,6 +69,8 @@ public static class MeshGenerator {
 				vertexIndex++;
 			}
 		}
+		meshData.BakedNormals();
+
 		return meshData;
 	}
 }
@@ -79,6 +81,7 @@ public class MeshData
 	int[] triangles;
 	// uv map so that we can add textures to our mesh
 	Vector2[] uvs;
+	Vector3[] bakedNormals;
 
 	Vector3[] borderVertices;
 	int[] borderTriangles;
@@ -197,13 +200,18 @@ public class MeshData
 		return Vector3.Cross(sideAB, sideAC).normalized;
 	}
 
+	public void BakedNormals()
+	{
+		bakedNormals = CalculateNormals();
+	}
+
 	public Mesh CreateMesh()
 	{
 		Mesh mesh = new Mesh();
 		mesh.vertices = vertices;
 		mesh.triangles = triangles;
 		mesh.uv = uvs;
-		mesh.normals = CalculateNormals();
+		mesh.normals = bakedNormals;
 		return mesh;
 	}
 
