@@ -5,7 +5,7 @@ Procedural Landmass Generation with Unity (from the courses of Sebastian Lague)
 Project made with Unity 5.5.0f
 
 Here are a few examples of what I'm trying to achieve with this project :
-> **Creating noise maps :** achieved the with the Perlin noise method
+> **Creating noise maps :** achieved with the Perlin noise method
 
 [![PLG01](img/img01.png)](img/img01.png)
 
