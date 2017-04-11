@@ -20,3 +20,7 @@ Here are a few examples of what I'm trying to achieve with this project :
 > **Using falloff generation to create coherent islands**
 
 [![PLG04](img/img04.png)](img/img04.png)
+
+> **Using Flat Shading to have a low-poly feeling with our meshes**
+
+[![PLG05](img/img05.png)](img/img05.png)
