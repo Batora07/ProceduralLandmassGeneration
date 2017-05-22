@@ -6,11 +6,14 @@ public class EndlessTerrain : MonoBehaviour {
 
 	const float viewerMoveThresholdForChunkUpdate = 25f;
 	const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
+	const float colliderGenerationDistanceThreshold = 5;
+
 	public LODInfo[] detailLevels;
 	public static float maxViewDst = 450;
 
 	public Transform viewer;
 	public Material mapMaterial;
+	public int ColliderLODIndex;
 
 	public static Vector2 viewerPosition;
 	Vector2 viewerPositionOld;
@@ -35,6 +38,14 @@ public class EndlessTerrain : MonoBehaviour {
 	void Update()
 	{
 		viewerPosition = new Vector2(viewer.position.x, viewer.position.z) / mapGenerator.terrainData.uniformScale;
+
+		if(viewerPosition != viewerPositionOld)
+		{
+			foreach(TerrainChunk chunk in terrainChunkVisibleLastUpdate)
+			{
+				chunk.UpdateCollisionMesh();
+			}
+		}
 
 		if((viewerPositionOld - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
 		{
@@ -68,7 +79,7 @@ public class EndlessTerrain : MonoBehaviour {
 				}
 				else
 				{
-					terrainChunkDictionnary.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, detailLevels, transform, mapMaterial));
+					terrainChunkDictionnary.Add(viewedChunkCoord, new TerrainChunk(viewedChunkCoord, chunkSize, detailLevels, ColliderLODIndex, transform, mapMaterial));
 				}
 			}
 		}
@@ -88,13 +99,14 @@ public class EndlessTerrain : MonoBehaviour {
 
 		LODInfo[] detailLevels;
 		LODMesh[] lodMeshes;
-		LODMesh collisionLODMesh;
+		int colliderLODIndex;
 
 		int previousLODIndex = -1;
 		bool mapDataReceived;
+		bool hasSetCollider;
 		
 
-		public TerrainChunk(Vector2 coord, int size, LODInfo[] detailLevels, Transform parent, Material material)
+		public TerrainChunk(Vector2 coord, int size, LODInfo[] detailLevels, int colliderLODIndex, Transform parent, Material material)
 		{
 			this.detailLevels = detailLevels;
 
@@ -116,10 +128,11 @@ public class EndlessTerrain : MonoBehaviour {
 			lodMeshes = new LODMesh[detailLevels.Length];
 			for (int i = 0; i < detailLevels.Length; i++)
 			{
-				lodMeshes[i] = new LODMesh(detailLevels[i].lod, UpdateTerrainChunk);
-				if (detailLevels[i].useForCollider)
+				lodMeshes[i] = new LODMesh(detailLevels[i].lod);
+				lodMeshes[i].updateCallback += UpdateTerrainChunk;
+				if (i == colliderLODIndex)
 				{
-					collisionLODMesh = lodMeshes[i];
+					lodMeshes[i].updateCallback += UpdateCollisionMesh;
 				}
 			}
 
@@ -172,21 +185,35 @@ public class EndlessTerrain : MonoBehaviour {
 						}
 					}
 
-					if (lodIndex == 0)
-					{
-						if (collisionLODMesh.hasMesh)
-						{
-							meshCollider.sharedMesh = collisionLODMesh.mesh;
-						}
-						else if (!collisionLODMesh.hasRequestedMesh){
-							collisionLODMesh.RequestMesh(mapData);
-						}
-					}
-
 					terrainChunkVisibleLastUpdate.Add(this);
 				}
 
 				SetVisible(visible);
+			}
+		}
+
+		public void UpdateCollisionMesh()
+		{
+			if (!hasSetCollider)
+			{
+				float sqrDstFromViewerToEdge = bounds.SqrDistance(viewerPosition);
+
+				if (sqrDstFromViewerToEdge < detailLevels[colliderLODIndex].sqrVisibleDstThreshold)
+				{
+					if (!lodMeshes[colliderLODIndex].hasRequestedMesh)
+					{
+						lodMeshes[colliderLODIndex].RequestMesh(mapData);
+					}
+				}
+
+				if (sqrDstFromViewerToEdge < colliderGenerationDistanceThreshold * colliderGenerationDistanceThreshold)
+				{
+					if (lodMeshes[colliderLODIndex].hasMesh)
+					{
+						meshCollider.sharedMesh = lodMeshes[colliderLODIndex].mesh;
+						hasSetCollider = true;
+					}
+				}
 			}
 		}
 
@@ -206,12 +233,11 @@ public class EndlessTerrain : MonoBehaviour {
 		public bool hasRequestedMesh;
 		public bool hasMesh;
 		int lod;
-		System.Action updateCallback;
+		public event System.Action updateCallback;
 
-		public LODMesh(int lod, System.Action updateCallback)
+		public LODMesh(int lod)
 		{
 			this.lod = lod;
-			this.updateCallback = updateCallback;
 		}
 
 		void OnMeshDataReceived(MeshData meshData)
@@ -235,6 +261,14 @@ public class EndlessTerrain : MonoBehaviour {
 		public int lod;
 		public float visibleDistanceThreshold;
 		public bool useForCollider;
+
+		public float sqrVisibleDstThreshold
+		{
+			get
+			{
+				return visibleDistanceThreshold * visibleDistanceThreshold;
+			}
+		}
 	}
 
 }
